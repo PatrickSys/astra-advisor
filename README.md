@@ -1,95 +1,142 @@
 # Astra Advisor
 
-An explicit GPT-6 Astra peer-review skill designed for **Codex and Claude Code**.
-Astra and the current agent are peers for evaluating the reviewed question. The
-current agent remains the execution owner; neither agent outranks the human objective
-or human constraints.
+A small, explicit GPT-6 Astra peer-review skill for **Codex and Claude Code**.
 
-**Status: experimental v0.1.0.** Deterministic checks and the real three-case Astra
-wiring canary pass on the documented Windows/Codex environment. Native invocation
-inside both hosts is still a compatibility surface; see [docs/VALIDATION.md](docs/VALIDATION.md).
+The problem it targets is narrow: a coding agent can brief a reviewer with its own
+summary of the task and omit a later correction, approval boundary, or missing piece
+of evidence. Astra Advisor builds the review packet from the selected conversation
+and explicitly selected artifacts instead.
 
-## Install and use
-
-Install from the public repository:
+## Install
 
 ```sh
 npx skills add PatrickSys/astra-advisor
 ```
 
-Choose Codex or Claude Code and the desired scope in the installer. To test a local
-checkout instead:
-
-```sh
-npx skills add .
-```
-
-Then ask in your existing conversation:
+Then invoke it in the conversation you want reviewed:
 
 ```text
 Codex:       $astra-advisor Is this ready, given what I actually requested?
-Claude Code: /astra-advisor Check this approach before we commit to it.
+Claude Code: /astra-advisor Check this approach against my requirements.
 ```
 
-The skill instructions make the host agent handle session identity and evidence
-selection. No JSON packet to prepare, global native-agent configuration to edit,
-or service to start.
+Requires Node.js 22+ and a signed-in Codex installation with access to
+`gpt-6-astra`. Claude Code uses the same Codex/Astra access for the peer review.
 
-**Requires:** Node.js 22+ and a signed-in Codex installation with Astra access,
-even when used from Claude Code. This is not Claude's native Fable/Opus advisor.
-Evidence is sent through the Codex model provider using your existing account.
+## What happens
 
-## What it does—and does not do
+```text
+current conversation + selected files/diff
+                 |
+                 v
+      deterministic bounded packet
+                 |
+        +--------+--------+
+        |                 |
+      Codex           Claude Code
+        |                 |
+ native Astra child   Codex app-server
+        |                 |
+        +--------+--------+
+                 |
+          verified peer result
+```
 
-Explicit by default in both host manifests. One bounded consultation, no automatic
-paid retries or recursive reviewers. Advice is not approval to ignore a human veto.
+**Codex** prepares the packet locally, spawns one native subagent with
+`model=gpt-6-astra`, `reasoning_effort=low`, and `fork_turns=none`, then
+re-reads the persisted parent and child rollouts. The verifier rejects the result if
+the spawn contract, lineage, model/effort, completion, or zero-tool-call condition
+does not match.
 
-The helper reads one identified conversation and explicitly selected text files or
-tracked diff. Structured answers retain their questions. Source hashes and line
-pointers make the packet inspectable. Unknown formats, attachments and incomplete
-history stay visible limitations; oversized inputs are not silently shortened.
+**Claude Code** uses the bundled helper to create one fresh ephemeral Astra turn
+through Codex app-server. The helper verifies the selected model and effort,
+read-only/no-network sandbox, absence of dynamic tools, no reroute, and zero observed
+action/tool items.
 
-Astra reads a **snapshot**, not the live repository. This does not prove complete
-human-intent recovery, independent tool inspection, security, or benchmark superiority.
-The caller must avoid secrets and unrelated data. Provider/runtime retention applies.
+Both paths use the same transcript normalizer and peer-review contract.
 
-## Proof, not claims
+## Conversation intake
 
-The current release has 50 passing deterministic tests and a retained 3/3 live Astra
-wiring canary covering a sound plan, a later human veto, and missing implementation
-evidence. That is **not** an accuracy benchmark or a cost claim.
+The helper binds to an exact current or explicitly selected session. It does not pick
+the newest or largest transcript.
 
-See the [proof boundary](docs/PROOF.md), the
-[sanitized live receipt](docs/evidence/live-eval-pass-2026-10-03.json), and the
-[field-report template](.github/ISSUE_TEMPLATE/field-report.yml). Real field reports,
-including false objections/noise, are the next evidence this project needs.
+It preserves:
 
-Material peer disagreement is not something the executor silently grades away. A
-`revise` or `insufficient evidence` result must be resolved by changing the work,
-gathering evidence, or producing a concrete evidence-backed rebuttal. If the
-disagreement remains material, surface it to the human.
+- original user messages and later corrections;
+- Claude `AskUserQuestion` and Codex `request_user_input` answers linked to their
+  questions/options;
+- preceding visible assistant context for short replies such as `B` or `yes`;
+- repeated genuine user text as separate records.
 
-## Develop
+It excludes hidden reasoning, arbitrary tool output, generated instruction envelopes,
+and subagent history from human intent. Compaction/rewind records, images,
+attachments, malformed records, unknown schemas, and unanswered structured questions
+remain explicit coverage limitations.
+
+Selected text files are hashed and bounded to 128 KiB each. The complete review
+packet is capped at 256 KiB. Oversized evidence fails instead of silently dropping
+human corrections.
+
+## Peer semantics
+
+Astra is a peer reviewer for the selected question. The current agent still owns
+execution and integration.
+
+- `supported`: no material objection from the peer; normal acceptance gates still apply.
+- `revise`: revise the work or rebut the finding with primary evidence.
+- `insufficient evidence`: gather the missing evidence or preserve the unresolved gap.
+- unresolved material disagreement: surface both evidence-backed positions to the human.
+
+Neither agent can override a human boundary.
+
+## Verified on v0.1.1
+
+Windows desktop; Codex 0.160.0; Claude Code 2.1.288; skills installer 1.7.0.
+
+| Check | Result |
+|---|---|
+| Deterministic suite | 58/58 pass |
+| Live Astra wiring canary | 3/3 expected verdicts |
+| Native Codex `$astra-advisor` | passed |
+| Claude Code `/astra-advisor` | passed |
+| Copied skill outside checkout | passed |
+| Exact Codex + Claude session binding | passed |
+
+See [validation](docs/VALIDATION.md) and the sanitized
+[Codex](docs/evidence/codex-host-v0.1.1.json) /
+[Claude Code](docs/evidence/claude-host-v0.1.1.json) receipts.
+
+## Limits
+
+This release does **not** establish that Astra Advisor improves coding quality,
+catches more bugs, saves money, or is independent in a statistical sense.
+
+The material technical limits are:
+
+- Codex native subagents inherit the parent turn's live sandbox choice. The verified
+  release path ran the parent read-only, so the Astra child was effectively
+  read-only too. A writable parent would weaken that capability boundary and must be
+  reported as such.
+- `fork_turns=none` excludes parent-turn history, but Codex still injects normal
+  host/project context into the child.
+- The current unpersisted prompt is supplied by the host with distinct provenance;
+  the helper cannot independently attest that copy.
+- Artifact selection is explicit and executor-assisted. Astra does not browse the
+  whole live repository.
+- Text intake does not recover image/attachment content.
+- The tested version matrix is currently one Windows environment.
+
+These are constraints to measure, not claims to hide.
+
+## Development
 
 ```sh
-npm test
-npm run doctor
+npm test          # no inference
+npm run doctor    # model catalog check; no inference
+npm run eval:live # three paid synthetic Astra canaries
 ```
 
-Tests and `doctor` do not run model inference. The agent-facing helper also has
-an `extract` command for inspecting the exact packet without a model call.
-
-The live wiring canary is deliberately separate:
-
-```sh
-npm run eval:live
-```
-
-This starts up to three synthetic Astra consultations using your account. It
-keeps every result, including failures, in a new `.local/eval-*.json` receipt.
-It is never part of `npm test`. Passing these canaries does not establish broad
-accuracy or replace testing an actual skill invocation in each host.
-
-See [design](docs/DESIGN.md), [research coverage](docs/RESEARCH.md) and
-[validation](docs/VALIDATION.md). Runtime code lives entirely inside the installed
-skill; there are no npm runtime dependencies or build steps.
+The runtime has no npm dependencies or build step. See
+[design](docs/DESIGN.md), [research](docs/RESEARCH.md),
+[proof boundary](docs/PROOF.md), and
+[CONTRIBUTING.md](CONTRIBUTING.md).

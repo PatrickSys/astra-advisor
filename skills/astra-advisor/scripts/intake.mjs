@@ -180,9 +180,15 @@ export function collectDiff(cwd) {
   return { source: 'git diff HEAD (tracked only; untracked files not included)', sha256: sha256(result.stdout), text: result.stdout, inspectedBy: 'local-helper' };
 }
 
-export function buildPacket({ question, conversation, files = [], diff = null }) {
+export function buildPacket({
+  question,
+  questionProvenance = 'current-host-input; not claimed persisted',
+  conversation,
+  files = [],
+  diff = null,
+}) {
   if (typeof question !== 'string' || !question.trim()) throw new Error('A concrete current advisory question is required.');
-  const packet = { version: 1, question, questionProvenance: 'current-host-input; not claimed persisted', conversation, files, ...(diff ? { diff } : {}) };
+  const packet = { version: 1, question, questionProvenance, conversation, files, ...(diff ? { diff } : {}) };
   if (Buffer.byteLength(JSON.stringify(packet)) > PACKET_LIMIT) throw new Error('Review evidence exceeds 256 KiB. Select a smaller, explicit scope; do not silently omit human corrections.');
   return packet;
 }

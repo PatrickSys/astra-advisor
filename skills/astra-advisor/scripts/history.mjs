@@ -7,6 +7,34 @@ import { resolveCodex } from './command.mjs';
 
 export const SESSION_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{7,127}$/;
 
+/**
+ * Resolve one exact Codex rollout by thread id without starting Codex.
+ * This is filename-only discovery: no recency heuristic and no content search.
+ */
+export function resolveCodexTranscript(threadId, {
+  codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex'),
+  maxEntries = 50_000,
+} = {}) {
+  if (!SESSION_ID.test(threadId)) throw new Error('A resolved Codex thread ID is required; unresolved template variables are not IDs.');
+  const roots = ['sessions', 'archived_sessions'].map(name => path.join(codexHome, name)).filter(p => fs.existsSync(p));
+  const matches = [];
+  let visited = 0;
+  for (const root of roots) {
+    const pending = [root];
+    while (pending.length) {
+      const current = pending.pop();
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        if (++visited > maxEntries) throw new Error(`Codex session index exceeds ${maxEntries} entries; pass the exact --transcript instead.`);
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) pending.push(full);
+        else if (entry.isFile() && entry.name.endsWith(`${threadId}.jsonl`)) matches.push(full);
+      }
+    }
+  }
+  if (matches.length !== 1) throw new Error(`Expected one Codex transcript for thread ${threadId}; found ${matches.length}. Pass its exact --transcript; never choose newest.`);
+  return matches[0];
+}
+
 /** Read one named thread. This client never starts/resumes a thread or model turn. */
 export async function readCodexThread(threadId, { binary = resolveCodex(), timeoutMs = 30_000 } = {}) {
   if (!SESSION_ID.test(threadId)) throw new Error('A resolved Codex thread ID is required; unresolved template variables are not IDs.');
@@ -39,7 +67,7 @@ export async function readCodexThread(threadId, { binary = resolveCodex(), timeo
     const id = ++next; pending.set(id, { resolve, reject }); send({ id, method, params });
   });
   try {
-    await rpc('initialize', { clientInfo: { name: 'astra_advisor_history', version: '0.1.0' }, capabilities: { experimentalApi: true } });
+    await rpc('initialize', { clientInfo: { name: 'astra_advisor_history', version: '0.1.1' }, capabilities: { experimentalApi: true } });
     send({ method: 'initialized' });
     const { thread } = await rpc('thread/read', { threadId, includeTurns: false });
     if (thread.id !== threadId) throw new Error('Codex returned a different thread identity.');

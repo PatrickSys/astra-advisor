@@ -1,77 +1,106 @@
-# Validation receipt — 2026-10-03
+# Validation — v0.1.1
 
-**Experimental v0.1.0. Real Astra inference wiring is verified on the environment
-below; broad compatibility and native host invocation are not.** This document
-distinguishes tests from claims.
+Validated 2026-10-03 on:
 
-## Environment observed
+- Windows 10.0.26200
+- Node.js 24.14.1
+- Codex CLI/app-server 0.160.0
+- Claude Code 2.1.288
+- skills installer 1.7.0
 
-Windows desktop; Node.js 24.14.1; Codex CLI/app-server 0.160.0; Claude Code 2.1.288;
-skills installer 1.7.0. Node 22+ is the intended minimum, not a tested version matrix.
-No macOS/Linux or other Codex/Claude versions were exercised.
+Node 22+ is the intended minimum. macOS/Linux and other host versions are not yet a
+tested matrix.
 
-## Completed checks
+## Deterministic
 
-- The final deterministic intake, packaging, evaluation-opt-in and protocol suites
-  passed: **50 tests, zero failures or skips**. No suite runs inference.
-- The real skills 1.7.0 installer discovered one skill and installed project-scoped
-  copies for both Codex and Claude Code in a disposable directory. No personal
-  installation or global configuration was changed.
-- The final installed skill's files matched their source hashes (zero mismatches).
-  Its copied `doctor` ran successfully outside the source checkout with zero inference.
-- A copy of only the skill executed `extract` outside the source checkout, with
-  synthetic input, paths containing spaces and an isolated Codex home. Runtime
-  imports stay within the copied skill. This is not a native host invocation test.
-- Real `doctor` initialized Codex 0.160.0 and read its model catalog without a model
-  turn. Exact `gpt-6-astra` is advertised with low/medium/high/xhigh/max/ultra. The
-  catalog default is medium; this advisor deliberately requests low.
-- The live synthetic Astra canary completed all three one-shot consultations:
-  compliant plan → `supported`, later structured veto → `revise`, and missing
-  implementation/test evidence → `insufficient evidence`. All three matched the
-  expected verdict. The run exposed and fixed two real integration bugs before
-  publication: a Windows temporary-directory cleanup race and unsupported
-  `thread/read(includeTurns)` on ephemeral Codex threads.
-- A targeted existing Codex conversation was read through its runtime-returned exact
-  source, exercising large-history parsing and linked structured decisions. Transport
-  representations may repeat and are not treated as independent human messages.
-  Compaction and generated-envelope limits were retained. No raw conversation was
-  exported or committed into this repository.
+The current suite passes **58/58** with no model inference. Coverage includes:
 
-## Review and correction loop
+- later vetoes and repeated user text;
+- Claude `AskUserQuestion` and Codex `request_user_input` linkage;
+- short-answer context;
+- generated envelopes, sidechains and Codex subagent provenance;
+- malformed/unknown records, identity mismatch, size bounds and changed sources;
+- copied-skill dependency closure;
+- exact Codex/Claude session lookup without recency guessing;
+- native Codex peer spawn/child verification fixtures;
+- model fallback/reroute, sandbox/network widening, tool/action attempts, retry and
+  timeout failure paths for the app-server bridge.
 
-Primary and independent review produced concrete fixes:
+## Live Astra canary
 
-1. Claude sidechain messages no longer masquerade as human intent or overwrite
-   the main conversation's short-answer context. Codex subagent prompts are refused.
-2. Windows namespaced paths returned by Codex use native realpath resolution. This
-   was caught by the real desktop-history check, not only synthetic tests.
-3. Requested effort is explicitly set before checking the configured response.
-   Provider/model/effort, ephemeral state and effective sandbox restrictions are
-   checked before a model turn; wider settings are not silently accepted.
-4. A mid-turn `model/rerouted` event invalidates the result. Allowed item types are
-   explicitly enumerated, so legacy/new collaboration names and unknown action
-   types cannot evade an incomplete denylist.
-5. Reported settings distinguish requested tool restrictions from observed runtime
-   metadata. Filesystem read-only is not a claim that all connected tools are safe.
+`npm run eval:live` retains three synthetic one-shot consultations:
 
-Regressions also cover later vetoes, structured question linkage, repeated text,
-missing attachments, malformed records, ambiguous identities, bounds, copied skill
-execution, provider fallback, missing model, unsupported effort, authentication
-failure, timeout/interrupt, retry refusal and runtime notification ordering.
+| Case | Expected | Observed |
+|---|---|---|
+| sound local plan | `supported` | `supported` |
+| later human veto conflicts with artifact | `revise` | `revise` |
+| correctness requested without implementation/tests | `insufficient evidence` | `insufficient evidence` |
 
-## Not completed
+This is a wiring canary, not a quality benchmark.
 
-Actual `$astra-advisor` expansion/execution inside Codex and `/astra-advisor`
-execution inside Claude Code remain unverified. Installed files and a successful
-standalone `extract` do not close those gates. The runtime also has no independently
-attested backend model identity or proof that zero tools were exposed server-side;
-recorded tool attempts invalidate the review but are not prevention of every side effect.
+## Native Codex host
 
-The real conversation-intake smoke also refused a sampled Codex subagent transcript
-instead of misclassifying its delegated prompt as original human intent. Another
-sample exceeded the explicit 32 MiB bound and was refused rather than silently
-truncated. Those are desired fail-closed results, not end-to-end host invocation.
+An installed project-scoped copy was invoked with `$astra-advisor` from a real
+Codex 0.160.0 **read-only** session.
 
-Do not publish a stable-compatibility, accuracy-improvement or cost-saving claim
-until broader real results exist. The synthetic cases are wiring canaries, not a
-comparative benchmark. Existing user-level Astra/native-agent settings are unchanged.
+Observed chain:
+
+1. Codex loaded the installed `SKILL.md`.
+2. The bundled helper resolved the exact current rollout and prepared the packet.
+3. Codex spawned one child with the generated task name, explicit
+   `gpt-6-astra`, low effort and `fork_turns=none`.
+4. The child returned `revise`.
+5. `verify-codex` bound the parent spawn to the exact child rollout and confirmed
+   configured Astra/low, correct lineage, completion and zero child function calls.
+
+The child inherited the parent's read-only sandbox. The persisted child
+`turn_context` reported read-only and the verifier observed zero tool/action calls.
+This matches Codex's documented behavior that the parent's live sandbox choice is
+reapplied to children.
+
+Sanitized receipt: [codex-host-v0.1.1.json](evidence/codex-host-v0.1.1.json).
+
+## Claude Code host
+
+An installed project-scoped copy was invoked with `/astra-advisor` from Claude Code
+2.1.288. The updated host path ran the bundled `review` bridge and returned
+`revise`.
+
+The Astra runtime receipt reported:
+
+- requested/configured `gpt-6-astra`;
+- low effort;
+- ephemeral thread;
+- effective read-only sandbox;
+- network disabled;
+- zero dynamic tools;
+- zero observed action/tool items.
+
+The host process requires local shell/file permission to prepare the question and
+invoke the helper. A separate `dontAsk` test correctly stopped when those host
+permissions were denied.
+
+Sanitized receipt: [claude-host-v0.1.1.json](evidence/claude-host-v0.1.1.json).
+
+## Integration failures that changed the design
+
+Real host tests found three issues that synthetic tests did not:
+
+1. Windows held the disposable app-server working directory briefly after shutdown;
+   cleanup was made non-fatal after a valid review.
+2. Ephemeral Codex threads reject `thread/read(includeTurns)`; completed-turn
+   notifications are now the one-shot runtime evidence.
+3. Node→Codex and nested `codex exec` execution can be denied inside a normal Codex
+   sandbox. Codex therefore uses native subagent delegation while Claude Code keeps
+   the external app-server bridge.
+
+## Still unproven
+
+- general coding-quality improvement;
+- bug-catch-rate improvement;
+- cost/token savings;
+- cross-platform/version compatibility;
+- complete multimodal human-intent recovery;
+- independent serving-model attestation beyond Codex runtime/model records;
+- enforced read-only capability for a Codex child when the parent turn itself is
+  writable; use a read-only parent for the verified capability boundary.

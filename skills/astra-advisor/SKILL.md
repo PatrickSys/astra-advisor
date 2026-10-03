@@ -6,50 +6,74 @@ disable-model-invocation: true
 
 # Astra Advisor
 
-Use only on explicit request. One question, one Astra peer review. The explicit
-invocation establishes Astra as a peer reviewer for that question; the executor
-cannot suppress the review or silently downgrade its findings to optional commentary.
-Do not enable Claude's native `/advisor` or change the user's model/configuration.
-This skill uses the installed Codex runtime from either host.
+Use only on explicit request. One question, one Astra peer review. The executor owns
+execution, not whether a material peer finding counts. Do not enable Claude's native
+`/advisor` or change the user's model/configuration.
 
 ## Run
 
-1. Take the concrete decision from the user's invocation and original conversation.
-   Keep original requests/corrections separate from executor claims. The executor may
-   add a narrower review question, but must label that wording and must not replace
-   or weaken the human objective. Write the user's current request verbatim plus any
-   labelled review question into a temporary UTF-8 file outside the repository.
+1. Preserve the user's request/corrections separately from executor claims. Label any
+   narrower review wording; never replace or weaken the human objective.
 2. Resolve the helper relative to this installed `SKILL.md`, not the repository.
-   In Claude Code, the skill directory is `${CLAUDE_SKILL_DIR}` and this session
-   is `${CLAUDE_SESSION_ID}`. These are host substitutions, not assumed shell variables.
-3. Invoke the bundled helper once, with safely quoted path arguments:
+   Claude supplies `${CLAUDE_SKILL_DIR}` and `${CLAUDE_SESSION_ID}` as host
+   substitutions, not assumed shell variables.
+3. Choose the host path below.
+
+### Codex
+
+Prepare the bounded peer prompt without inference:
 
    ```text
-   node <skill-directory>/scripts/advisor.mjs review --question-file <temporary-file> --file <relevant-repository-file>
+   node <skill-directory>/scripts/advisor.mjs prepare --file <relevant-repository-file>
    ```
 
-   Codex: the helper uses `CODEX_THREAD_ID`; otherwise supply the actual `--session`.
-   Claude: add `--host claude --session <resolved-Claude-session-id>`.
-   For a specifically selected saved conversation, use `--transcript <exact-JSONL>`
-   with its `--host`. Never choose the newest/largest log or ask the user to
-   assemble a JSON packet. Add `--diff` for tracked changes against HEAD, or
-   repeat `--file` for relevant artifacts (including untracked files).
-4. Return the peer verdict, material evidence/limits, and the smallest next step.
-   Astra has no execution authority, but its material findings require resolution.
-   For `revise` or `insufficient evidence`, the executor must either revise/gather
-   evidence or provide a concrete evidence-backed rebuttal. If the disagreement
-   remains material, surface it to the human. Never silently overrule the peer review.
-   Do not waive required tests or a human veto.
+The helper uses exact `CODEX_THREAD_ID`, recovers the persisted current request,
+and returns `codexPeer.prompt`. If current input is not persisted, pass
+`--question-file`. Use exact `--transcript` for a selected saved conversation.
+Never guess by recency. Add `--diff` or repeat `--file` for evidence.
 
-The helper reads original persisted messages and linked structured answers.
-Current unpersisted input stays distinctly labelled. It supplies a bounded text
-snapshot; Astra does not independently inspect the live repository. Attachments,
-unsupported history and ambiguous identities must stay explicit limitations.
+Spawn **exactly one native Codex subagent** with:
+
+- `task_name = codexPeer.taskName`
+- `model = gpt-6-astra`
+- `reasoning_effort = low`
+- `fork_turns = none`
+- `message = codexPeer.prompt` exactly
+
+Wait; do not create nested `codex exec`. Validate the persisted child:
+
+   ```text
+   node <skill-directory>/scripts/advisor.mjs verify-codex --task-name <codexPeer.taskName>
+   ```
+
+The verifier checks exact child lineage, Astra/low, `fork_turns=none`, completion,
+zero child function calls, and the effective sandbox. Codex reapplies the parent's
+live sandbox choice; report it honestly.
+
+### Claude Code
+
+Write the current request verbatim plus labelled review wording to a temporary UTF-8
+file; Claude persistence can lag current input. Then run:
+
+```text
+node <skill-directory>/scripts/advisor.mjs review --host claude --session <resolved-Claude-session-id> --question-file <temporary-file> --file <relevant-repository-file>
+```
+
+The bridge verifies Astra/low, ephemeral read-only/no-network execution, no dynamic
+tools, no reroute, and zero observed action/tool items.
+
+4. Return the verified verdict, material evidence/limits, and smallest next step.
+   Resolve `revise`/`insufficient evidence` by changing work, gathering evidence,
+   or an evidence-backed rebuttal. Surface unresolved material disagreement to the
+   human. Never silently overrule the peer review. Never waive required tests or a
+   human veto.
+
+The helper supplies a bounded snapshot, not live-repository inspection. Keep
+attachments, unsupported history and ambiguous identities as explicit limitations.
 
 If the helper fails, report its concrete diagnostic. Do not silently substitute
 your own opinion, another model, a broader permission mode, or a paid retry.
-`doctor` diagnoses the runtime without inference; `extract` shows the exact packet
-without inference. They do not prove that an advisory model call will succeed.
+`doctor` and `extract` use no inference.
 
 No automatic review loop, recursive advisor, background process, publication,
 global installation change, whole-history audit, or unrelated source collection.

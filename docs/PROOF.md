@@ -1,6 +1,6 @@
 # What Astra Advisor can prove today
 
-This is the public claim boundary for v0.1.0.
+This is the public claim boundary for v0.1.1.
 
 ## Proven on the release environment
 
@@ -11,14 +11,16 @@ This is the public claim boundary for v0.1.0.
 | The runtime refuses model substitution | Protocol tests reject provider/model fallback and mid-turn model rerouting. |
 | Conversation intake preserves later structured decisions | Deterministic tests cover Claude structured answers and Codex `request_user_input` linkage. |
 | It does not treat subagent prompts as human intent | Deterministic tests plus a real desktop history smoke fail closed on subagent-originated history. |
-| The one-shot Astra path actually runs | The retained live v0.1.0 canary completed three real Astra calls. |
+| The one-shot Astra bridge actually runs | The retained v0.1.1 live canary completed three real Astra calls with all expected verdicts. |
+| Native Codex invocation runs the peer and verifies the child | The v0.1.1 host receipt binds one explicit native spawn to its persisted Astra child and confirms Astra/low, `fork_turns=none`, completion and zero child function calls. |
+| Claude Code invocation runs the bundled Astra bridge | The v0.1.1 host receipt records an explicit slash-skill run and a verified read-only/no-network Astra result. |
 
 ## The retained live canary
 
-The full sanitized receipt is
-[live-eval-pass-2026-10-03.json](evidence/live-eval-pass-2026-10-03.json).
+The latest sanitized receipt is
+[live-eval-v0.1.1.json](evidence/live-eval-v0.1.1.json).
 The deterministic suite output is
-[npm-test-2026-10-03.txt](evidence/npm-test-2026-10-03.txt).
+[npm-test-v0.1.1.txt](evidence/npm-test-v0.1.1.txt).
 
 | Case | Expected | Astra returned |
 |---|---|---|
@@ -59,7 +61,7 @@ Do not publish these claims yet:
 - "It saves tokens/money."
 - "The advisor is independent."
 - "It works on every Codex/Claude Code version or OS."
-- "Native `$astra-advisor` / `/astra-advisor` dispatch is verified end-to-end in every host."
+- "Native dispatch is verified across every OS/version."
 
 The release validation document is the source of truth:
 [../docs/VALIDATION.md](../docs/VALIDATION.md).

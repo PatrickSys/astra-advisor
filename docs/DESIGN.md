@@ -1,76 +1,104 @@
-# Design and acceptance contract
+# Architecture
 
-Status: experimental implementation; live compatibility remains a separate gate.
-This file records the intended contract, not test results.
+## Contract
 
-## Outcome
+Explicit `$astra-advisor` in Codex or `/astra-advisor` in Claude Code creates one
+peer-review question.
 
-Explicit `$astra-advisor` in Codex or `/astra-advisor` in Claude Code creates a
-peer-review relationship for one source-grounded question. Astra owns the independent
-review; the existing agent owns execution and integration. Neither role outranks the
-human objective or human constraints, and the executor is not the arbiter of whether
-the peer finding "counts".
+The human objective and constraints are authoritative. The executor owns mutations
+and integration. Astra owns its peer finding. A material disagreement is resolved
+with evidence or surfaced to the human; the executor does not silently grade away the
+review.
 
-One copied skill contains its entire runtime. It requires no native-agent installation,
-workflow framework, daemon, database, npm service, or automatic consultation policy.
-The repository is a peer utility, not part of a workflow framework. A workflow
-can consume it without taking ownership of its model-specific implementation.
+## Shared intake
 
-## Boundaries
+`scripts/intake.mjs` is the common boundary.
 
-The explicit invocation supplies the decision to review. The host may identify
-relevant artifacts and add a narrower labelled question, but it must preserve the
-verbatim human request rather than replace it with executor framing. The helper
-recovers one exact conversation and reads explicit local evidence. Astra receives a
-bounded text snapshot: this is original-intent intake, not an independently browsing
-agent. The snapshot and source hashes make selection and limitations inspectable.
+The current request is supplied distinctly from persisted history. Historical intent
+comes from one exact session or explicitly supplied transcript. The normalizer
+recognizes user text, assistant context needed for short answers, and linked
+structured decisions. Unsupported or uncertain history remains a coverage gap.
 
-Codex history uses a read-only app-server client: only initialize, thread/read,
-thread/items/list. No resume/start/turn commands. An exact rollout path returned
-by the runtime is preferred because some API views omit structured decisions.
-Claude resolves an exact session filename among project directories; no content
-search or recency heuristics. An explicit transcript works without discovery.
+Sources are snapshotted with hashes. A source that changes during read fails. Limits:
 
-Recognized structured answers retain linked questions/options. Visible assistant
-context accompanies short replies. Reasoning, arbitrary tool output and known
-generated envelopes are not promoted to human requests. Repeated user text is
-not deduplicated; Codex transport representations may repeat and are labelled.
-This is not authenticated authorship, branch reconstruction, complete attachment
-recovery, or proof that every human decision is represented.
+- transcript source: 32 MiB;
+- selected artifact: 128 KiB;
+- final peer packet: 256 KiB.
 
-No silent truncation: source reads are limited to 32 MiB, each artifact to 128 KiB,
-and the final packet to 256 KiB. Changed sources, ambiguous identities, credential
-filenames, binary artifacts and evidence escaping the selected root fail clearly.
-The credential filename check is a guard, not a comprehensive secret scanner.
+Artifact paths must remain inside the selected repository after symlink resolution.
+Likely credential filenames are refused. This is a guard, not a secret scanner.
 
-Peer semantics:
+## Codex transport
 
-- `supported`: the reviewed question has no material objection from Astra; other
-  acceptance gates still apply.
-- `revise`: the executor must revise or rebut the finding with primary evidence.
-- `insufficient evidence`: gather the missing evidence or surface the unresolved
-  gap; do not convert absence of evidence into approval.
-- unresolved material disagreement: surface both evidence-backed positions to the
-  human. No silent executor override and no automatic majority vote.
+The Codex host path deliberately uses Codex's native collaboration runtime.
 
-## Build plan
+1. Resolve the current rollout by exact `CODEX_THREAD_ID` filename. No recency
+   heuristic or model call is used for intake.
+2. Build a peer prompt containing the reviewer contract and bounded packet.
+3. Spawn exactly one native child:
+   - `model = gpt-6-astra`
+   - `reasoning_effort = low`
+   - `fork_turns = none`
+4. Wait for completion.
+5. Re-open the exact parent rollout, bind the unique task name to its
+   `SubAgentActivity` child thread, then open that exact child rollout.
+6. Accept the result only when lineage, requested/configured model, effort,
+   completion, and zero function/tool calls match.
 
-1. Fix the source-boundary problem first: structured veto, source identity, honest coverage.
-2. Package one helper and concise caller/reviewer contracts with explicit host policies.
-3. Test copied installation and deterministic failure cases before model calls.
-4. Independently review the code, correct concrete defects, rerun focused regressions.
-5. Run bounded synthetic live cases when execution is permitted; retain failures.
+Why native delegation: a real Codex host test showed that Node→Codex and nested
+`codex exec` process paths can be denied by the parent Codex sandbox. Native
+subagents are the supported in-harness execution mechanism.
 
-## Release gates
+### Codex permission boundary
 
-- The actual skills installer discovers one skill and copies it for both hosts.
-- Copied execution works outside the checkout; no private paths or missing imports.
-- Deterministic tests cover later veto, structured answer, short-reply context,
-  generated envelopes, malformed records, limits, ambiguity and model failures.
-- Runtime/model selection, safety controls and observed tool behavior are recorded,
-  not inferred from the advisor's own prose.
-- Real supported/revise/insufficient cases have retained results. A small canary
-  suite is evidence of wiring and specific behaviors, not general superiority.
-- Each claimed host has an actual invocation receipt, or is labelled unverified.
+Codex reapplies the parent turn's live permission/sandbox choice to subagents.
+Therefore a custom child default cannot honestly guarantee read-only when the parent
+turn is workspace-write. The verifier records the effective child sandbox.
 
-See RESEARCH.md for the source review and VALIDATION.md for actual results.
+The v0.1.1 release acceptance ran the parent read-only. The persisted child
+`turn_context` also reported read-only, and the verifier observed zero tool/action
+items. A writable parent would weaken this boundary and is reported rather than
+accepted as equivalent.
+
+`fork_turns=none` prevents parent-turn conversation inheritance. Normal Codex
+system/developer/project context is still injected into the child and is recorded as
+a context-boundary limitation.
+
+## Claude Code transport
+
+Claude Code cannot natively spawn an OpenAI model, so its path uses the bundled
+Codex app-server bridge.
+
+1. Resolve the exact Claude session ID/transcript.
+2. Build the same bounded packet.
+3. Start a fresh ephemeral Codex app-server thread with exact Astra/low.
+4. Require the returned effective sandbox to be read-only and network-disabled
+   before inference.
+5. Supply no dynamic tools.
+6. Reject provider/model fallback, unsupported effort, reroutes, runtime retry
+   requests, non-ephemeral execution, and any observed action/tool item.
+7. Return the completed peer report plus packet/runtime receipt.
+
+The Claude host itself needs permission to create a temporary question file and run
+the local Node helper. That is host orchestration permission; the Astra peer remains
+inside the separately verified read-only app-server sandbox.
+
+## Why two host transports
+
+The host runtimes have different extension models. Forcing one subprocess topology
+onto both made Codex less reliable. The shared product boundary is the evidence
+packet and peer contract; the transport is host-specific.
+
+There is no daemon, database, memory service, automatic polling, recursive reviewer,
+or mandatory workflow framework.
+
+## Peer result
+
+The three verdicts are:
+
+- `supported`
+- `revise`
+- `insufficient evidence`
+
+A verdict is bound to the captured conversation/artifact state. Later corrections or
+artifact changes can invalidate it.

@@ -28,6 +28,12 @@ the skill manifest rather than prose alone. The Subagents guide recommends start
 Astra at low effort when setting it explicitly; xhigh was an earlier local baseline,
 not evidence for a public default. Neither setting is proven optimal by this build.
 
+The October 3 host tests also changed transport architecture. Current Codex supports
+native subagents with explicit model/effort selection, and its documentation states
+that live parent sandbox/permission overrides are reapplied to children. The Codex
+integration therefore uses native delegation and records the effective child sandbox
+instead of claiming a custom-agent read-only default can override the parent.
+
 ## Actual advisor patterns, not lookalikes
 
 **Claude Code Advisor:** full substantive page read. Native `/advisor` is a

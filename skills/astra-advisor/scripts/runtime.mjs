@@ -157,7 +157,7 @@ async function connect({ binary, spawnImpl, rpcTimeoutMs }) {
   const client = new AppServer(binary, { cwd: os.tmpdir(), spawnImpl, rpcTimeoutMs });
   try {
     const runtime = await client.rpc('initialize', {
-      clientInfo: { name: 'astra_advisor', version: '0.1.0' },
+      clientInfo: { name: 'astra_advisor', version: '0.1.1' },
       capabilities: { experimentalApi: true },
     });
     client.send({ method: 'initialized' });

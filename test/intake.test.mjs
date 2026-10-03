@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { normalizeRecords, fromTranscript, readSnapshot, collectEvidence, buildPacket, fromCodexItems, PACKET_LIMIT } from '../skills/astra-advisor/scripts/intake.mjs';
 import { parseArgs, prepare } from '../skills/astra-advisor/scripts/advisor.mjs';
-import { resolveClaudeTranscript } from '../skills/astra-advisor/scripts/history.mjs';
+import { resolveClaudeTranscript, resolveCodexTranscript } from '../skills/astra-advisor/scripts/history.mjs';
 
 const claudeUser = text => ({ type: 'user', userType: 'external', message: { content: [{ type: 'text', text }] } });
 const codexUser = text => ({ type: 'response_item', payload: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } });
@@ -185,6 +185,56 @@ test('Claude lookup uses exact ID and rejects ambiguity or templates', t => {
   fs.writeFileSync(path.join(root, 'project-B', filename), '');
   assert.throws(() => resolveClaudeTranscript('session-12345', { root }), /found 2/);
   assert.throws(() => resolveClaudeTranscript('${CLAUDE_SESSION_ID}', { root }), /resolved/);
+});
+
+test('Codex lookup uses exact thread id filename and never recency', t => {
+  const home = temporary(t), sessions = path.join(home, 'sessions', '2026', '10', '03');
+  fs.mkdirSync(sessions, { recursive: true });
+  const exact = path.join(sessions, 'rollout-2026-10-03T20-00-00-session-12345.jsonl');
+  fs.writeFileSync(exact, '');
+  fs.writeFileSync(path.join(sessions, 'rollout-2026-10-03T23-59-59-other-session.jsonl'), '');
+  assert.equal(resolveCodexTranscript('session-12345', { codexHome: home }), exact);
+  assert.throws(() => resolveCodexTranscript('session-missing', { codexHome: home }), /found 0/);
+});
+
+test('current Codex prepare prefers exact rollout lookup without starting app-server', async t => {
+  const dir = temporary(t), q = path.join(dir, 'q.txt'), transcript = path.join(dir, 'rollout-session-12345.jsonl');
+  fs.writeFileSync(q, 'Review this.');
+  fs.writeFileSync(transcript, [
+    JSON.stringify({ type: 'session_meta', payload: { id: 'session-12345' } }),
+    JSON.stringify(codexUser('Do not publish.')),
+  ].join('\n'));
+  const packet = await prepare(
+    { questionFile: q, host: 'codex', cwd: dir, files: [] },
+    {
+      env: { CODEX_THREAD_ID: 'session-12345' },
+      resolveCodex: () => transcript,
+      readThread: () => { throw new Error('app-server must not start when exact rollout resolves'); },
+    },
+  );
+  assert.equal(packet.conversation.sessionId, 'session-12345');
+  assert.equal(packet.conversation.messages.at(-1).text, 'Do not publish.');
+});
+
+test('Codex prepare can derive the current persisted user request without a temp question file', async t => {
+  const dir = temporary(t), transcript = path.join(dir, 'rollout-session-12345.jsonl');
+  fs.writeFileSync(transcript, [
+    JSON.stringify({ type: 'session_meta', payload: { id: 'session-12345' } }),
+    JSON.stringify(codexUser('Earlier request.')),
+    JSON.stringify(codexUser('$astra-advisor Review PLAN.txt against my latest boundary.')),
+  ].join('\n'));
+  const packet = await prepare(
+    { host: 'codex', cwd: dir, files: [] },
+    {
+      env: { CODEX_THREAD_ID: 'session-12345' },
+      resolveCodex: () => transcript,
+      allowRuntimeHistory: false,
+      deriveCurrentQuestion: true,
+      readThread: () => { throw new Error('must not start app-server'); },
+    },
+  );
+  assert.equal(packet.question, '$astra-advisor Review PLAN.txt against my latest boundary.');
+  assert.match(packet.questionProvenance, /persisted-current-user-message/);
 });
 
 test('unavailable current Codex identity does not guess a recent session', async t => {
