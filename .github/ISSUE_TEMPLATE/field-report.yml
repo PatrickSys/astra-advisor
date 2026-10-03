@@ -1,0 +1,86 @@
+name: Advisor field report
+description: Report one real Astra Advisor decision so usefulness can be measured instead of guessed.
+title: "[field] "
+labels:
+  - field-report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. The useful report is not whether Astra agreed; it is whether the advice survived an independent check.
+        Remove private code, secrets and employer information before posting.
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Codex
+        - Claude Code
+        - Other / helper called directly
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Codex/Claude Code version, OS, and Astra effort if known.
+  - type: textarea
+    id: question
+    attributes:
+      label: Decision being reviewed
+      description: What did you ask the advisor to decide/check?
+    validations:
+      required: true
+  - type: textarea
+    id: before
+    attributes:
+      label: Main-agent proposal before the consult
+      description: Keep this short and factual.
+    validations:
+      required: true
+  - type: dropdown
+    id: verdict
+    attributes:
+      label: Advisor verdict
+      options:
+        - supported
+        - revise
+        - insufficient evidence
+        - failed / no verdict
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: Decisive advisor finding
+      description: Paraphrase or paste the minimum non-sensitive evidence.
+    validations:
+      required: true
+  - type: dropdown
+    id: changed
+    attributes:
+      label: Did the consult change the next action?
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+  - type: dropdown
+    id: verified
+    attributes:
+      label: After checking, what happened?
+      options:
+        - Caught a real missed human constraint
+        - Caught a real missing-evidence problem
+        - Caught a real technical issue
+        - Agreed with a sound proposal
+        - False objection / noise
+        - Still unresolved
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Optional reproduction details or sanitized logs.
+

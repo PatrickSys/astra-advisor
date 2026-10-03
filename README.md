@@ -1,8 +1,9 @@
 # Astra Advisor
 
-An explicit GPT-6 Astra second-opinion skill designed for **Codex and Claude Code**.
-Your current agent stays in charge. Astra checks the decision against original
-user requests, later corrections, linked answers and relevant file snapshots.
+An explicit GPT-6 Astra peer-review skill designed for **Codex and Claude Code**.
+Astra and the current agent are peers for evaluating the reviewed question. The
+current agent remains the execution owner; neither agent outranks the human objective
+or human constraints.
 
 **Status: experimental v0.1.0.** Deterministic checks and the real three-case Astra
 wiring canary pass on the documented Windows/Codex environment. Native invocation
@@ -51,6 +52,22 @@ history stay visible limitations; oversized inputs are not silently shortened.
 Astra reads a **snapshot**, not the live repository. This does not prove complete
 human-intent recovery, independent tool inspection, security, or benchmark superiority.
 The caller must avoid secrets and unrelated data. Provider/runtime retention applies.
+
+## Proof, not claims
+
+The current release has 50 passing deterministic tests and a retained 3/3 live Astra
+wiring canary covering a sound plan, a later human veto, and missing implementation
+evidence. That is **not** an accuracy benchmark or a cost claim.
+
+See the [proof boundary](docs/PROOF.md), the
+[sanitized live receipt](docs/evidence/live-eval-pass-2026-10-03.json), and the
+[field-report template](.github/ISSUE_TEMPLATE/field-report.yml). Real field reports,
+including false objections/noise, are the next evidence this project needs.
+
+Material peer disagreement is not something the executor silently grades away. A
+`revise` or `insufficient evidence` result must be resolved by changing the work,
+gathering evidence, or producing a concrete evidence-backed rebuttal. If the
+disagreement remains material, surface it to the human.
 
 ## Develop
 

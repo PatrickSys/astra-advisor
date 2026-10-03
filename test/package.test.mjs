@@ -29,6 +29,17 @@ test('both hosts opt out of implicit invocation and skill stays small', () => {
   assert.ok(text.split('\n').length < 100);
 });
 
+test('Astra is a peer reviewer while execution authority stays separate', () => {
+  const caller = fs.readFileSync(path.join(skill, 'SKILL.md'), 'utf8');
+  const reviewer = fs.readFileSync(path.join(skill, 'references', 'advisor.md'), 'utf8');
+  assert.match(caller, /peer review/i);
+  assert.match(caller, /execution owner/i);
+  assert.match(caller, /Never silently overrule the peer review/i);
+  assert.match(reviewer, /peer reviewer/i);
+  assert.match(reviewer, /independent epistemic standing/i);
+  assert.match(reviewer, /must not silently\s+discard it/i);
+});
+
 test('copy of only the skill executes outside checkout with no repository imports', t => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'astra-copy-test-'));
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));

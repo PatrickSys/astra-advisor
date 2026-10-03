@@ -1,0 +1,62 @@
+
+> astra-advisor@0.1.0 test
+> node --test
+
+✔ live evaluation is opt-in; default command only lists three synthetic cases (141.8989ms)
+✔ evaluation tests acceptance, real linked veto and missing evidence—not agreement alone (0.8625ms)
+✔ retains original request, later veto and repeated genuine text in order (3.491ms)
+✔ Claude structured veto is joined to its original question/options (0.4873ms)
+✔ Codex request_user_input preserves linked answers (0.4958ms)
+✔ unrelated tool results never become human decisions (0.2718ms)
+✔ unanswered structured question is an explicit coverage gap (0.2654ms)
+✔ short answer retains preceding visible assistant proposal (0.2261ms)
+✔ hidden reasoning is excluded, not echoed as answer context (0.2116ms)
+✔ known injected envelopes are not human intent (0.187ms)
+✔ Claude sidechain content is excluded from both human intent and answer context (0.4012ms)
+✔ Codex subagent task prompts cannot masquerade as human requests (0.8964ms)
+✔ compaction summaries and queue rows remain gaps, not original instructions (0.2427ms)
+✔ unknown visible blocks and images are reported (0.259ms)
+✔ mixed or wrong session identity fails closed (0.4356ms)
+✔ Codex transport representations are preserved and labelled, not text-deduplicated (0.2672ms)
+✔ malformed JSONL is visible in coverage and line provenance survives (13.9318ms)
+✔ bounded snapshot rejects excessive, binary and invalid UTF-8 input (10.7423ms)
+✔ Windows namespaced paths returned by Codex are readable (6.0791ms)
+✔ artifact evidence is helper-read, hashed, and path-bounded (8.4541ms)
+✔ credential filenames fail instead of being sent as evidence (4.6517ms)
+✔ bounded packet does not silently trim human intent (1.5063ms)
+✔ API item history explicitly cannot establish structured decision completeness (0.7224ms)
+✔ CLI rejects unknown, duplicate, conflicting and malformed options (0.7827ms)
+✔ CLI accepts spaces without shell interpolation or merging repeatable paths (0.2182ms)
+✔ Claude lookup uses exact ID and rejects ambiguity or templates (7.2312ms)
+✔ unavailable current Codex identity does not guess a recent session (12.3329ms)
+✔ exact transcript extraction needs neither Codex runtime nor model inference (13.7794ms)
+✔ both hosts opt out of implicit invocation and skill stays small (1.9306ms)
+✔ copy of only the skill executes outside checkout with no repository imports (216.928ms)
+✔ doctor checks the model catalog without starting inference (8.6809ms)
+✔ review pins Astra, low effort and disabled environment access, then validates the completed turn and usage (15.7751ms)
+✔ review rejects provider model fallback before starting a turn (4.5177ms)
+✔ review fails before thread creation when Astra is missing (2.6557ms)
+✔ review fails before thread creation when the requested effort is unsupported (3.0175ms)
+✔ review refuses an effective sandbox escalation before starting a turn (3.2039ms)
+✔ review refuses effective network access before starting a turn (3.1944ms)
+✔ review refuses a non-ephemeral thread before starting a turn (3.0502ms)
+✔ review aborts and discards a turn that starts any recorded tool/action (4.0572ms)
+✔ rejects collabToolCall, including aliases and unknown future items (4.6034ms)
+✔ rejects collabAgentToolCall, including aliases and unknown future items (3.2559ms)
+✔ rejects futureAction, including aliases and unknown future items (4.1581ms)
+✔ rejects hookPrompt, including aliases and unknown future items (3.1021ms)
+✔ model reroute cannot produce a successful exact-Astra receipt (2.9662ms)
+✔ missing model and unsupported effort fail before creating a model turn (3.8759ms)
+✔ widened networking and non-ephemeral thread are refused before inference (4.0792ms)
+✔ runtime retry request is rejected without starting a second model turn (2.4541ms)
+✔ deadline interrupts a stuck review once, without retry (1013.5717ms)
+✔ authentication failure is surfaced, not silently retried or substituted (2.313ms)
+✔ review times out once, interrupts once, and never retries inference (1010.207ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2276.6891
