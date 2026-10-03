@@ -273,6 +273,7 @@ export async function review(packet, {
   let turnId;
   let usage = null;
   let firstRuntimeError = null;
+  let output = null;
   try {
     const connected = await connect({ binary, spawnImpl, rpcTimeoutMs: Math.min(timeoutMs, RPC_TIMEOUT_MS) });
     client = connected.client;
@@ -346,17 +347,29 @@ export async function review(packet, {
     }
     if (firstRuntimeError) throw new Error(`Astra runtime failed: ${firstRuntimeError.message || JSON.stringify(firstRuntimeError)}`);
 
-    // Re-read the live ephemeral thread so success depends on the recorded turn, not prose assurances.
-    const read = await client.rpc('thread/read', { threadId, includeTurns: true });
-    const recorded = read?.thread?.turns?.find(turn => turn.id === turnId) ?? completed;
-    const inspected = inspectTurn(recorded);
-    return {
+    // Ephemeral Codex threads intentionally do not support thread/read(includeTurns).
+    // The turn/completed notification is the authoritative completed-turn payload for
+    // this one-shot session, so validate that exact object rather than inventing a
+    // persistence guarantee the runtime does not provide.
+    const inspected = inspectTurn(completed);
+    output = {
       report: inspected.report,
-      runtime: runtimeReceipt(connected.runtime, started, model, effort),
+      runtime: {
+        ...runtimeReceipt(connected.runtime, started, model, effort),
+        turnEvidence: 'turn/completed-notification',
+      },
       usage,
     };
+    return output;
   } finally {
     client?.close();
-    fs.rmSync(work, { recursive: true, force: true });
+    try {
+      await fs.promises.rm(work, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
+    } catch (error) {
+      // On Windows, Codex descendants can briefly retain a handle to the ephemeral
+      // cwd after app-server shutdown. The directory contains no packet or user
+      // evidence, so a cleanup race must not discard an otherwise valid review.
+      if (output?.runtime) output.runtime.cleanupWarning = `Temporary review directory cleanup failed: ${error.code || error.message}`;
+    }
   }
 }

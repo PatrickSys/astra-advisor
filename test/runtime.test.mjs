@@ -60,7 +60,7 @@ test('doctor checks the model catalog without starting inference', async () => {
   assert.equal(fake.calls[0].args.includes('apps._default.enabled=false'), true);
 });
 
-test('review pins Astra, low effort and disabled environment access, then returns recorded report and usage', async () => {
+test('review pins Astra, low effort and disabled environment access, then validates the completed turn and usage', async () => {
   let recordedTurn;
   const seen = [];
   const fake = fakeSpawn((message, { emit }) => {
@@ -97,7 +97,6 @@ test('review pins Astra, low effort and disabled environment access, then return
       });
       return { turn: { id: 'turn-1', status: 'inProgress', items: [], itemsView: 'summary', error: null } };
     }
-    if (message.method === 'thread/read') return { thread: { id: 'thread-1', turns: [recordedTurn] } };
     throw new Error(`unexpected ${message.method}`);
   });
   const result = await review({ question: 'ship?' }, { binary: 'codex-test', spawnImpl: fake.spawnImpl, timeoutMs: 5_000 });
@@ -107,8 +106,10 @@ test('review pins Astra, low effort and disabled environment access, then return
   assert.equal(result.runtime.toolBoundary.observedToolItems, 0);
   assert.equal(result.runtime.toolBoundary.effectiveReadOnlyNoNetwork, true);
   assert.equal(result.runtime.toolBoundary.webSearchDisableRequested, true);
+  assert.equal(result.runtime.turnEvidence, 'turn/completed-notification');
   assert.equal(result.usage.inputTokens, 12);
   assert.equal(seen.filter(message => message.method === 'turn/start').length, 1);
+  assert.equal(seen.some(message => message.method === 'thread/read'), false);
 });
 
 test('review rejects provider model fallback before starting a turn', async () => {

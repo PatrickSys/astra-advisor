@@ -1,7 +1,7 @@
 # Design and acceptance contract
 
-Status: experimental local implementation; publication and live compatibility are
-separate gates. This file records the intended contract, not test results.
+Status: experimental implementation; live compatibility remains a separate gate.
+This file records the intended contract, not test results.
 
 ## Outcome
 
@@ -9,8 +9,8 @@ Explicit `$astra-advisor` in Codex or `/astra-advisor` in Claude Code gives one
 source-grounded second opinion. The existing agent owns execution and integration.
 The human does not assemble packets or choose orchestration settings.
 
-One copied skill contains its entire runtime. No native-agent installation,
-IdeaSpine import, daemon, database, npm service, or automatic consultation policy.
+One copied skill contains its entire runtime. It requires no native-agent installation,
+workflow framework, daemon, database, npm service, or automatic consultation policy.
 The repository is a peer utility, not part of a workflow framework. A workflow
 can consume it without taking ownership of its model-specific implementation.
 

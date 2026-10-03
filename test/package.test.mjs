@@ -9,6 +9,19 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const skill = path.join(root, 'skills', 'astra-advisor');
 
+function filesUnder(directory) {
+  const files = [], pending = [directory];
+  while (pending.length) {
+    const current = pending.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(full);
+      else files.push(full);
+    }
+  }
+  return files;
+}
+
 test('both hosts opt out of implicit invocation and skill stays small', () => {
   const text = fs.readFileSync(path.join(skill, 'SKILL.md'), 'utf8');
   assert.match(text, /disable-model-invocation: true/);
@@ -29,10 +42,11 @@ test('copy of only the skill executes outside checkout with no repository import
   });
   assert.equal(child.status, 0, child.stderr);
   assert.equal(JSON.parse(child.stdout).conversation.messages[0].text, 'No publication.');
-  const scripts = fs.readdirSync(path.join(installed, 'scripts')).filter(f => f.endsWith('.mjs'));
-  for (const file of scripts) {
-    const text = fs.readFileSync(path.join(installed, 'scripts', file), 'utf8');
-    assert.doesNotMatch(text, /(?:from\s+|import\s*\()['"]\.\.\/\.\.\/\.\./, file);
-    assert.doesNotMatch(text, /[A-Z]:[\\/]+Users[\\/]+|\/repos\/ideaspine/, file);
+  for (const file of filesUnder(installed)) {
+    if (!/\.(?:md|mjs|ya?ml|json)$/i.test(file)) continue;
+    const text = fs.readFileSync(file, 'utf8');
+    const relative = path.relative(installed, file);
+    if (file.endsWith('.mjs')) assert.doesNotMatch(text, /(?:from\s+|import\s*\()['"]\.\.\/\.\.\/\.\./, relative);
+    assert.doesNotMatch(text, /[A-Z]:[\\/]+Users[\\/]+|\/(?:Users|home)\/[^/\s]+\/|\/repos\/|IdeaSpine/i, relative);
   }
 });

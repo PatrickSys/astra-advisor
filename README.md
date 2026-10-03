@@ -1,25 +1,26 @@
 # Astra Advisor
 
-An explicit GPT-6 Astra second opinion for **Codex and Claude Code**.
+An explicit GPT-6 Astra second-opinion skill designed for **Codex and Claude Code**.
 Your current agent stays in charge. Astra checks the decision against original
 user requests, later corrections, linked answers and relevant file snapshots.
 
-**Status: experimental local build. Not published.** Validation status is recorded
-in [docs/VALIDATION.md](docs/VALIDATION.md), including what has not been tested.
+**Status: experimental v0.1.0.** Deterministic checks and the real three-case Astra
+wiring canary pass on the documented Windows/Codex environment. Native invocation
+inside both hosts is still a compatibility surface; see [docs/VALIDATION.md](docs/VALIDATION.md).
 
 ## Install and use
 
-From this checkout:
-
-```sh
-npx skills add .
-```
-
-Choose Codex or Claude Code and the desired scope in the installer. After this
-repository is published, the equivalent public command will be:
+Install from the public repository:
 
 ```sh
 npx skills add PatrickSys/astra-advisor
+```
+
+Choose Codex or Claude Code and the desired scope in the installer. To test a local
+checkout instead:
+
+```sh
+npx skills add .
 ```
 
 Then ask in your existing conversation:
@@ -29,8 +30,9 @@ Codex:       $astra-advisor Is this ready, given what I actually requested?
 Claude Code: /astra-advisor Check this approach before we commit to it.
 ```
 
-The agent handles session identity and evidence selection. No JSON packet to
-prepare, global native-agent configuration to edit, or service to start.
+The skill instructions make the host agent handle session identity and evidence
+selection. No JSON packet to prepare, global native-agent configuration to edit,
+or service to start.
 
 **Requires:** Node.js 22+ and a signed-in Codex installation with Astra access,
 even when used from Claude Code. This is not Claude's native Fable/Opus advisor.
@@ -60,7 +62,7 @@ npm run doctor
 Tests and `doctor` do not run model inference. The agent-facing helper also has
 an `extract` command for inspecting the exact packet without a model call.
 
-The remaining live check is deliberately separate:
+The live wiring canary is deliberately separate:
 
 ```sh
 npm run eval:live
@@ -68,7 +70,7 @@ npm run eval:live
 
 This starts up to three synthetic Astra consultations using your account. It
 keeps every result, including failures, in a new `.local/eval-*.json` receipt.
-It is never part of `npm test`. Passing these canaries would not establish broad
+It is never part of `npm test`. Passing these canaries does not establish broad
 accuracy or replace testing an actual skill invocation in each host.
 
 See [design](docs/DESIGN.md), [research coverage](docs/RESEARCH.md) and

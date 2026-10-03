@@ -25,7 +25,7 @@ Reviewed 2026-10-03. This is a source/decision ledger, not evidence of model qua
 Consequences: small caller skill, separate reviewer contract, clear completion
 boundary, no routine manager loop. Codex explicit-only policy is enforced through
 the skill manifest rather than prose alone. The Subagents guide recommends starting
-Astra at low effort when setting it explicitly; xhigh was a personal prior baseline,
+Astra at low effort when setting it explicitly; xhigh was an earlier local baseline,
 not evidence for a public default. Neither setting is proven optimal by this build.
 
 ## Actual advisor patterns, not lookalikes
@@ -74,7 +74,7 @@ https://github.com/vercel-labs/skills
 ## Claim boundary
 
 No research citation establishes that this advisor is better or cheaper than
-Claude Advisor, Amp Oracle, a single strong executor, or the prior personal skill.
+Claude Advisor, Amp Oracle, a single strong executor, or the prior local skill.
 The testable claim is narrower: recover recognized original intent, provide a
 bounded identified snapshot, make one explicitly requested Astra consultation,
 and expose material limitations instead of disguising them as assurance.

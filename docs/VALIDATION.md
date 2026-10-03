@@ -1,7 +1,8 @@
 # Validation receipt — 2026-10-03
 
-**Experimental local build. Not published. Actual model behavior and native host
-invocation are not yet verified.** This document distinguishes tests from claims.
+**Experimental v0.1.0. Real Astra inference wiring is verified on the environment
+below; broad compatibility and native host invocation are not.** This document
+distinguishes tests from claims.
 
 ## Environment observed
 
@@ -24,17 +25,21 @@ No macOS/Linux or other Codex/Claude versions were exercised.
 - Real `doctor` initialized Codex 0.160.0 and read its model catalog without a model
   turn. Exact `gpt-6-astra` is advertised with low/medium/high/xhigh/max/ultra. The
   catalog default is medium; this advisor deliberately requests low.
-- A targeted existing desktop Codex conversation was read through its runtime-
-  returned exact source. The 23,748,117-byte source yielded 50 recognized message
-  records and six linked structured decisions. These are not 50 independently
-  authenticated human messages: transport representations may repeat. Compaction
-  and generated-envelope limits were retained. No raw private conversation was
+- The live synthetic Astra canary completed all three one-shot consultations:
+  compliant plan → `supported`, later structured veto → `revise`, and missing
+  implementation/test evidence → `insufficient evidence`. All three matched the
+  expected verdict. The run exposed and fixed two real integration bugs before
+  publication: a Windows temporary-directory cleanup race and unsupported
+  `thread/read(includeTurns)` on ephemeral Codex threads.
+- A targeted existing Codex conversation was read through its runtime-returned exact
+  source, exercising large-history parsing and linked structured decisions. Transport
+  representations may repeat and are not treated as independent human messages.
+  Compaction and generated-envelope limits were retained. No raw conversation was
   exported or committed into this repository.
 
 ## Review and correction loop
 
-Two maximum-effort ChatGPT workers researched/reviewed the design; one implemented
-the isolated runtime module. Primary and independent review produced concrete fixes:
+Primary and independent review produced concrete fixes:
 
 1. Claude sidechain messages no longer masquerade as human intent or overwrite
    the main conversation's short-answer context. Codex subagent prompts are refused.
@@ -54,16 +59,7 @@ missing attachments, malformed records, ambiguous identities, bounds, copied ski
 execution, provider fallback, missing model, unsupported effort, authentication
 failure, timeout/interrupt, retry refusal and runtime notification ordering.
 
-## Not completed—and why
-
-The tool execution layer blocked the requested Codex implementation worker launch.
-Implementation proceeded directly with the two ChatGPT workers; no Codex executor
-or Luna subagents ran. Later, it also blocked the command requesting live synthetic
-Astra evaluation before execution. That was not retried through another route.
-
-**New live Astra model calls in this build: zero.** Mock protocol tests and a real
-model catalog do not prove successful inference, actual permission enforcement,
-correct advisory judgments or host-to-helper execution.
+## Not completed
 
 Actual `$astra-advisor` expansion/execution inside Codex and `/astra-advisor`
 execution inside Claude Code remain unverified. Installed files and a successful
@@ -71,14 +67,11 @@ standalone `extract` do not close those gates. The runtime also has no independe
 attested backend model identity or proof that zero tools were exposed server-side;
 recorded tool attempts invalidate the review but are not prevention of every side effect.
 
-## Smallest remaining acceptance step
-
-Run `npm run eval:live` locally when execution is permitted. It makes at most three
-synthetic consultations (support, linked veto, insufficient evidence), stops on a
-runtime failure and saves a new receipt without overwriting prior results. Inspect
-the evidence cited, not just the expected verdict string. Then invoke the installed
-skill once from each host, verifying exact conversation binding and runtime metadata.
+The real conversation-intake smoke also refused a sampled Codex subagent transcript
+instead of misclassifying its delegated prompt as original human intent. Another
+sample exceeded the explicit 32 MiB bound and was refused rather than silently
+truncated. Those are desired fail-closed results, not end-to-end host invocation.
 
 Do not publish a stable-compatibility, accuracy-improvement or cost-saving claim
-until those real results exist. The synthetic cases are wiring canaries, not a
-comparative benchmark. Existing personal Astra skill/native-agent settings are unchanged.
+until broader real results exist. The synthetic cases are wiring canaries, not a
+comparative benchmark. Existing user-level Astra/native-agent settings are unchanged.
