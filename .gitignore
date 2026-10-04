@@ -8,3 +8,12 @@ node_modules/
 # Private Workspine-style project state.
 # `.work/` may be its own private Git repository; never publish it from this public repo.
 .work/
+
+# Local Workspine/agent runtime surfaces. Regenerated from Workspine; never published
+# as Astra Advisor product source.
+.agents/
+.codex/
+.claude/
+skills-lock.json
+/goal.md
+.work/.local/
