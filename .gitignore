@@ -4,3 +4,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Private Workspine-style project state.
+# `.work/` may be its own private Git repository; never publish it from this public repo.
+.work/
