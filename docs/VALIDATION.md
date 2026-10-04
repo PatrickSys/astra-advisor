@@ -38,10 +38,14 @@ The current suite passes **58/58** with no model inference. Coverage includes:
 
 This is a wiring canary, not a quality benchmark.
 
-## Native Codex host
+## Codex host flow
 
-An installed project-scoped copy was invoked with `$astra-advisor` from a real
-Codex 0.160.0 **read-only** session.
+An installed project-scoped copy was exercised from a real Codex 0.160.0
+**read-only** session. The smoke prompt explicitly asked Codex to use Astra Advisor,
+and the full downstream skill flow completed, but the Windows test harness passed
+through PowerShell and expanded the literal `$astra-advisor` token before Codex saw
+the prompt. Therefore this receipt proves the installed-skill host flow, not literal
+`$astra-advisor` token dispatch.
 
 Observed chain:
 
@@ -59,6 +63,9 @@ This matches Codex's documented behavior that the parent's live sandbox choice i
 reapplied to children.
 
 Sanitized receipt: [codex-host-v0.1.1.json](evidence/codex-host-v0.1.1.json).
+
+One clean shell-escaped literal `$astra-advisor` invocation receipt remains an open
+compatibility check. Do not represent it as already proven.
 
 ## Claude Code host
 

@@ -12,7 +12,7 @@ This is the public claim boundary for v0.1.1.
 | Conversation intake preserves later structured decisions | Deterministic tests cover Claude structured answers and Codex `request_user_input` linkage. |
 | It does not treat subagent prompts as human intent | Deterministic tests plus a real desktop history smoke fail closed on subagent-originated history. |
 | The one-shot Astra bridge actually runs | The retained v0.1.1 live canary completed three real Astra calls with all expected verdicts. |
-| Native Codex invocation runs the peer and verifies the child | The v0.1.1 host receipt binds one explicit native spawn to its persisted Astra child and confirms Astra/low, `fork_turns=none`, completion and zero child function calls. |
+| Codex installed-skill host flow runs the peer and verifies the child | The v0.1.1 host receipt binds one explicit native spawn to its persisted Astra child and confirms Astra/low, `fork_turns=none`, completion and zero child function calls. The smoke harness did not preserve the literal `$astra-advisor` token, so literal token dispatch remains unproven. |
 | Claude Code invocation runs the bundled Astra bridge | The v0.1.1 host receipt records an explicit slash-skill run and a verified read-only/no-network Astra result. |
 
 ## The retained live canary
@@ -62,6 +62,7 @@ Do not publish these claims yet:
 - "The advisor is independent."
 - "It works on every Codex/Claude Code version or OS."
 - "Native dispatch is verified across every OS/version."
+- "Literal `$astra-advisor` dispatch is already proven by the v0.1.1 Windows smoke."
 
 The release validation document is the source of truth:
 [../docs/VALIDATION.md](../docs/VALIDATION.md).

@@ -97,7 +97,7 @@ Windows desktop; Codex 0.160.0; Claude Code 2.1.288; skills installer 1.7.0.
 |---|---|
 | Deterministic suite | 58/58 pass |
 | Live Astra wiring canary | 3/3 expected verdicts |
-| Native Codex `$astra-advisor` | passed |
+| Codex installed-skill host flow | passed; literal `$astra-advisor` dispatch receipt still pending |
 | Claude Code `/astra-advisor` | passed |
 | Copied skill outside checkout | passed |
 | Exact Codex + Claude session binding | passed |
